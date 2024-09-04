@@ -1,0 +1,41 @@
+pipeline:
+    type: chain
+    transforms:
+        - type: Create
+          config:
+              elements:
+                  - https://beamstackproj.github.io/docs/getting-started/introduction/
+        - type: ScrapeWebPages
+          config:
+              max_depth: 1
+              min_char_size: 30
+        - type: OpenAIEmbedding
+          config:
+              api_key: "sk-"
+              embed_model: "text-embedding-ada-002"
+              metadata_fields:
+                  - "url"
+                  - "heading"
+              embed_fields:
+                  - "text"
+              doc_id: "title"
+        - type: WriteToElasticsearchVectorStore
+          config:
+              es_url: "https://demo-01-es-http.default.svc.cluster.local:9200"
+              index_name: "beamstack"
+              client_kwargs:
+                  basic_auth: 
+                    - elastic
+                    - 
+                  verify_certs: false
+              store_kwargs:
+                  text_field: documentation
+                  vector_field: documentation_vector
+
+providers:
+    - type: python
+      config: {}
+      transforms:
+          OpenAIEmbedding: "beamstack_transforms.embeddings.openai.CreateEmbeddings"
+          WriteToElasticsearchVectorStore: "beamstack_transforms.vectorstore.elasticsearch.WriteToElasticsearchVectorStore"
+          ScrapeWebPages: "beamstack_transforms.io.webscrapper.ScrapeWebPages"
